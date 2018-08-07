@@ -1,9 +1,8 @@
 
 import {Command, flags} from '@heroku-cli/command'
-import * as Heroku from '@heroku-cli/schema'
 
 import * as HerokuCI from '../../lib/interface'
-import {disambiguatePipeline} from '../../lib/utils/pipelines'
+import {getPipeline} from '../../lib/utils/pipelines'
 
 export default class Info extends Command {
   static description = 'show the status of a specific test run'
@@ -23,31 +22,22 @@ export default class Info extends Command {
 
   async run() {
     const {args, flags} = this.parse(Info)
-    let pipeline
 
-    if ((!flags.pipeline) && (!flags.app)) {
-      this.error('Required flag:  --pipeline PIPELINE or --app APP')
+    const pipeline = await getPipeline(flags, this)
+    const headers = {Accept: 'application/vnd.heroku+json; version=3.ci'}
+
+    try {
+      const {body: testRun} = await this.heroku.get<HerokuCI.TestRun>(`/pipelines/${pipeline.id}/test-runs/${args['test-run']}`, {headers})
+      const {body: testNodes} = await this.heroku.get(`/test-runs/${testRun.id}/test-nodes`, {headers})
+
+      this.log(testRun)
+      this.log(testNodes)
+
+    } catch (e) {
+      this.error(e.body.message) // This currently shows a  ›   Error: Not found.
     }
 
-    if (flags.pipeline) {
-      pipeline = await disambiguatePipeline(flags.pipeline, this.heroku)
-    } else {
-      const {body: coupling} = await this.heroku.get<Heroku.PipelineCoupling>(`/apps/${flags.app}/pipeline-couplings`)
-      if ((coupling) && (coupling.pipeline)) {
-        pipeline = coupling.pipeline
-      } else {
-        this.error(`No pipeline found associated to application ${flags.app}`)
-      }
-    }
-
-    const headers =  {Accept: 'application/vnd.heroku+json; version=3.ci'}
-
-    const {body: testRun} = await this.heroku.get<HerokuCI.TestRun>(`/pipelines/${pipeline.id}/test-runs/${args['test-run']}`, {headers})
-    const {body: testNodes} = await this.heroku.get(`/test-runs/${testRun.id}/test-nodes`, {headers})
-
-    this.log(testRun)
-    this.log(testNodes)
-    // if (flags.node) {
+    //  if (flags.node) {
     //   if (testNodes.length > 1) {
     //     testNode = testNodes[flags.node]
 
