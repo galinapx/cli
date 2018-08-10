@@ -10,7 +10,6 @@ import {displayAndExit} from '../../utils/test-run'
 import {createSourceBlob} from '../../utils/source'
 import cli from 'cli-ux'
 
-const git = require('../../utils/git')
 export default class CiReRun extends Command {
   static description = 'rerun tests against current directory'
 
