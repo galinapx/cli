@@ -10,8 +10,6 @@ import {displayAndExit} from '../../utils/test-run'
 import {createSourceBlob} from '../../utils/source'
 
 const git = require('../../utils/git')
-
-console.log(git)
 export default class CiRun extends Command {
   static description = 'run tests against current directory'
 
